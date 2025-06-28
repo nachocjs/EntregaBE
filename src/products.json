@@ -1,0 +1,67 @@
+[
+  {
+    "id": 6,
+    "title": "Mother",
+    "description": "Placa base",
+    "code": "d48a",
+    "price": 568,
+    "stock": 5,
+    "category": "Mb",
+    "thumbnails": [
+      "/img/mother.jpg"
+    ],
+    "status": true
+  },
+  {
+    "id": 7,
+    "title": "I7 8700k",
+    "description": "Procesador intel",
+    "code": "48ad",
+    "price": 350,
+    "stock": 10,
+    "category": "Procesador",
+    "thumbnails": [
+      "/img/7700k-8700k-box.jpg"
+    ],
+    "status": true
+  },
+  {
+    "id": 8,
+    "title": "Corsair vengeance",
+    "description": "Memoria Ram",
+    "code": "48aad",
+    "price": 199,
+    "stock": 10,
+    "category": "MR",
+    "thumbnails": [
+      "/img/ram.jpg"
+    ],
+    "status": true
+  },
+  {
+    "id": 9,
+    "title": "Fuente Corsair",
+    "description": "Fuente de poder",
+    "code": "87ad",
+    "price": 189,
+    "stock": 10,
+    "category": "fuente",
+    "thumbnails": [
+      "/img/fuente.png"
+    ],
+    "status": true
+  },
+  {
+    "id": 10,
+    "title": "Nvidia 5090 msi",
+    "description": "Tarjeta de video",
+    "code": "8a4da",
+    "price": 1950,
+    "stock": 4,
+    "category": "gpu",
+    "thumbnails": [
+      "/img/gpu.jpg"
+    ],
+    "status": true
+  }
+]

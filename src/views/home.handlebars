@@ -1,0 +1,22 @@
+<div class="container my-5">
+  <h1 class="mb-4 text-center", style= "padding: 30px;" >Listado de Productos</h1>
+
+ <div class="products-container" style="display:flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+  {{#each products}}
+    <div class="product-card" style="background-color: rgb(196, 219, 226); border: 1px solid #000000; border-radius: 8px; padding: 16px; width: 280px;">
+      <h2 style="font-size: 1.4rem; margin-bottom: 8px;">{{title}}</h2>
+       {{#if thumbnails}}
+        <img src="{{thumbnails}}" alt="Imagen de {{title}}" style="width:100%; height:auto; margin-top: 10px; border-radius: 4px;">
+      {{else}}
+        <p><em>Sin imagen disponible</em></p>
+      {{/if}}
+      <p><strong>Descripción:</strong> {{description}}</p>
+      <p><strong>Código:</strong> {{code}}</p>
+      <p><strong>Precio:</strong> ${{price}}</p>
+      <p><strong>Stock:</strong> {{stock}}</p>
+      <p><strong>Categoría:</strong> {{category}}</p>
+     
+      <p><strong>Estado:</strong> {{#if status}}Activo{{else}}Inactivo{{/if}}</p>
+    </div>
+  {{/each}}
+</div>
