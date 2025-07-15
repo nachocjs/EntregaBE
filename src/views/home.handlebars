@@ -1,22 +1,145 @@
 <div class="container my-5">
-  <h1 class="mb-4 text-center", style= "padding: 30px;" >Listado de Productos</h1>
+  <h1 class="mb-4 text-center" style="padding: 30px;">Listado de Productos</h1>
 
- <div class="products-container" style="display:flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
-  {{#each products}}
-    <div class="product-card" style="background-color: rgb(196, 219, 226); border: 1px solid #000000; border-radius: 8px; padding: 16px; width: 280px;">
-      <h2 style="font-size: 1.4rem; margin-bottom: 8px;">{{title}}</h2>
-       {{#if thumbnails}}
-        <img src="{{thumbnails}}" alt="Imagen de {{title}}" style="width:100%; height:auto; margin-top: 10px; border-radius: 4px;">
-      {{else}}
-        <p><em>Sin imagen disponible</em></p>
+  <form id="cartForm" class="mb-3 text-center" onsubmit="return false;">
+    <input
+      type="text"
+      id="cartIdInput"
+      name="cid"
+      placeholder="Ingresa el ID del carrito"
+      value="{{cartId}}"
+      class="form-control mx-auto shadow-lg"
+      style="max-width: 300px;"
+    />
+    <button type="button" id="viewCartBtn" class="btn btn-outline-dark mt-2">
+     🛒 Ver Carrito
+    </button>
+  </form>
+
+  <form method="GET" action="/" class="mb-4 d-flex flex-wrap gap-3 justify-content-center">
+    <input 
+      type="text" 
+      name="query" 
+      placeholder="Buscar categoría o título" 
+      value="{{query}}" 
+      class="form-control shadow-lg" 
+      style="max-width: 250px;"
+    />
+    
+    <select name="sort" class="form-select" style="max-width: 150px;">
+      <option value="" {{#unless sort}}selected{{/unless}}>Ordenar precio</option>
+      <option value="asc" {{#if (eq sort "asc")}}selected{{/if}}>Ascendente</option>
+      <option value="desc" {{#if (eq sort "desc")}}selected{{/if}}>Descendente</option>
+    </select>
+
+    <input 
+      type="number" 
+      name="limit" 
+      placeholder="Ingresa el número de productos a mostrar" 
+      value="{{limit}}" 
+      class="form-control shadow-lg " 
+      style="max-width: 250px;"
+      min="1"
+    />
+
+    <button type="submit" class="btn btn-primary shadow-lg">Filtrar</button>
+  </form>
+
+  <div class="products-container d-flex flex-wrap gap-4 justify-content-center">
+    {{#each products}}
+      <div class="product-card shadow-lg" style="background-color: rgb(255, 250, 244); border: 1px solid #000000; border-radius: 8px; padding: 16px; width: 280px;">
+        <h2 style="font-size: 1.4rem; margin-bottom: 8px;">{{title}}</h2>
+        
+        {{#if thumbnails}}
+          <img src="{{thumbnails.[0]}}" alt="Imagen de {{title}}" style="width:100%; height:auto; margin-top: 10px; border-radius: 4px;">
+        {{else}}
+          <p><em>Sin imagen disponible</em></p>
+        {{/if}}
+
+        <p><strong>Descripción:</strong> {{description}}</p>
+        <p><strong>Código:</strong> {{code}}</p>
+        <p><strong>Precio:</strong> ${{price}}</p>
+        <p><strong>Stock:</strong> {{stock}}</p>
+        <p><strong>Categoría:</strong> {{category}}</p>
+        <p><strong>Estado:</strong> {{#if status}}Activo{{else}}Inactivo{{/if}}</p>
+
+        <button class="btn btn-success w-100 mt-2 add-to-cart-btn shadow-lg" data-product-id="{{_id}}">
+          🛒 Agregar al carrito
+        </button>
+      </div>
+    {{/each}}
+  </div>
+
+  <nav aria-label="Paginación" class="mt-4 d-flex justify-content-center">
+    <ul class="pagination">
+      {{#if hasPrevPage}}
+      <li class="page-item">
+        <a class="page-link" href="?page={{prevPage}}&limit={{limit}}&sort={{sort}}&query={{query}}" aria-label="Anterior">
+          <span aria-hidden="true">&laquo; Anterior</span>
+        </a>
+      </li>
       {{/if}}
-      <p><strong>Descripción:</strong> {{description}}</p>
-      <p><strong>Código:</strong> {{code}}</p>
-      <p><strong>Precio:</strong> ${{price}}</p>
-      <p><strong>Stock:</strong> {{stock}}</p>
-      <p><strong>Categoría:</strong> {{category}}</p>
-     
-      <p><strong>Estado:</strong> {{#if status}}Activo{{else}}Inactivo{{/if}}</p>
-    </div>
-  {{/each}}
+
+      <li class="page-item disabled">
+        <span class="page-link">Página {{page}} de {{totalPages}}</span>
+      </li>
+
+      {{#if hasNextPage}}
+      <li class="page-item">
+        <a class="page-link" href="?page={{nextPage}}&limit={{limit}}&sort={{sort}}&query={{query}}" aria-label="Siguiente">
+          <span aria-hidden="true">Siguiente &raquo;</span>
+        </a>
+      </li>
+      {{/if}}
+    </ul>
+  </nav>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const buttons = document.querySelectorAll(".add-to-cart-btn");
+    const cartIdInput = document.getElementById("cartIdInput");
+
+    buttons.forEach(button => {
+      button.addEventListener("click", async () => {
+        const productId = button.dataset.productId;
+        const cartId = cartIdInput.value.trim();
+
+        if (!cartId) {
+          alert("❌ Por favor ingresa el ID del carrito antes de agregar productos.");
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ quantity: 1 })
+          });
+
+          const result = await res.json();
+
+          if (res.ok) {
+            alert("✅ Producto agregado al carrito");
+          } else {
+            alert("❌ Error: " + result.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert("❌ Error de conexión con el servidor");
+        }
+      });
+    });
+
+    document.getElementById("viewCartBtn").addEventListener("click", () => {
+      const cartId = cartIdInput.value.trim();
+      if (!cartId) {
+        alert("❌ Por favor ingresa un ID de carrito válido.");
+        return;
+      }
+      window.location.href = `/carts/${cartId}`;
+    });
+  });
+</script>

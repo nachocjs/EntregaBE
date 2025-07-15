@@ -1,0 +1,55 @@
+<div class="container mt-5">
+  <h2>🛒 Carrito: {{cartId}}</h2>
+
+  {{#if products.length}}
+    <button id="clearCartBtn" class="btn btn-danger mt-2 mb-3">Vaciar Carrito</button>
+
+    <ul class="list-group mt-3">
+      {{#each products}}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{this.product.title}}</strong><br />
+            Cantidad: {{this.quantity}}<br />
+            Precio unitario: ${{this.product.price}}<br />
+            Total: ${{multiply this.quantity this.product.price}}
+          </div>
+          {{#if this.product.thumbnails.[0]}}
+            <img src="{{this.product.thumbnails.[0]}}" alt="imagen" style="width: 60px; height: auto;" />
+          {{/if}}
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <p class="mt-4">El carrito está vacío.</p>
+  {{/if}}
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const clearCartBtn = document.getElementById("clearCartBtn");
+    if (clearCartBtn) {
+      clearCartBtn.addEventListener("click", async () => {
+        const confirmed = confirm("¿Estás seguro que querés vaciar el carrito?");
+        if (!confirmed) return;
+
+        try {
+          const cartId = "{{cartId}}";
+          const res = await fetch(`/api/carts/${cartId}`, {
+            method: "DELETE",
+          });
+
+          if (res.ok) {
+            alert("🗑️ Carrito vaciado correctamente");
+            window.location.reload();
+          } else {
+            const result = await res.json();
+            alert("❌ Error al vaciar el carrito: " + result.message);
+          }
+        } catch (err) {
+          console.error("Error vaciando el carrito:", err);
+          alert("❌ Error de conexión al intentar vaciar el carrito");
+        }
+      });
+    }
+  });
+</script>

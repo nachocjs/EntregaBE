@@ -1,117 +1,126 @@
 <div class="container mt-4">
-    <h1 class="text-center mb-4">Productos en Tiempo Real</h1>
+  <h1 class="text-center mb-4">Productos en Tiempo Real</h1>
 
-    <div id="productsList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
+  <div id="productsList" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
 
-    <hr class="my-5" />
+  <hr class="my-5" />
 
-    <h2>Agregar Producto</h2>
-    <form id="productForm" class="row g-3">
-      <div class="col-md-6">
-        <input type="text" name="title" placeholder="Título" class="form-control" required />
-      </div>
-      <div class="col-md-6">
-        <input type="text" name="description" placeholder="Descripción" class="form-control" required />
-      </div>
-      <div class="col-md-4">
-        <input type="text" name="code" placeholder="Código" class="form-control" required />
-      </div>
-      <div class="col-md-4">
-        <input type="number" name="price" placeholder="Precio" class="form-control" required min="0" />
-      </div>
-      <div class="col-md-4">
-        <input type="number" name="stock" placeholder="Stock" class="form-control" required min="0" />
-      </div>
-      <div class="col-md-6">
-        <input type="text" name="category" placeholder="Categoría" class="form-control" required />
-      </div>
-      <div class="col-md-6">
-        <input type="text" name="thumbnails" placeholder="Imágenes (URL, opcional)" class="form-control" />
-      </div>
-      <div class="col-md-12">
-        <select name="status" class="form-select" required>
-          <option value="" disabled selected>Estado</option>
-          <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
-        </select>
-      </div>
-      <div class="col-12">
-        <button type="submit" class="btn btn-primary">Agregar Producto</button>
-      </div>
-    </form>
-  </div>
+  <h2>Agregar Producto</h2>
+  <form id="productForm" class="row g-3">
+    <div class="col-md-6">
+      <input type="text" name="title" placeholder="Título" class="form-control" required />
+    </div>
+    <div class="col-md-6">
+      <input type="text" name="description" placeholder="Descripción" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <input type="text" name="code" placeholder="Código" class="form-control" required />
+    </div>
+    <div class="col-md-4">
+      <input type="number" name="price" placeholder="Precio" class="form-control" required min="0" />
+    </div>
+    <div class="col-md-4">
+      <input type="number" name="stock" placeholder="Stock" class="form-control" required min="0" />
+    </div>
+    <div class="col-md-6">
+      <input type="text" name="category" placeholder="Categoría" class="form-control" required />
+    </div>
+    <div class="col-md-6">
+      <input type="text" name="thumbnails" placeholder="Imágenes (URL, opcional)" class="form-control" />
+    </div>
+    <div class="col-md-12">
+      <select name="status" class="form-select" required>
+        <option value="" disabled selected>Estado</option>
+        <option value="true">Activo</option>
+        <option value="false">Inactivo</option>
+      </select>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">Agregar Producto</button>
+    </div>
+  </form>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
 
-  <script>
-    const socket = io();
+  function renderProducts(products) {
+    const list = document.getElementById("productsList");
+    list.innerHTML = "";
 
-    function renderProducts(products) {
-      const list = document.getElementById("productsList");
-      list.innerHTML = "";
+    products.forEach(product => {
+      const col = document.createElement("div");
+      col.className = "col";
 
-      products.forEach(product => {
-        const col = document.createElement("div");
-        col.className = "col";
+      const title = product.title || "Sin título";
+      const description = product.description || "Sin descripción";
+      const code = product.code || "Sin código";
+      const price = product.price !== undefined ? `$${product.price}` : "Precio no disponible";
+      const stock = product.stock !== undefined ? product.stock : "Stock no disponible";
+      const category = product.category || "Categoría no definida";
+      const status = product.status === true ? "Activo" : "Inactivo";
+      const thumbnail = product.thumbnails && product.thumbnails.length > 0 ? product.thumbnails[0] : null;
 
-        const title = product.title || "Sin título";
-        const description = product.description || "Sin descripción";
-        const code = product.code || "Sin código";
-        const price = product.price !== undefined ? `$${product.price}` : "Precio no disponible";
-        const stock = product.stock !== undefined ? product.stock : "Stock no disponible";
-        const category = product.category || "Categoría no definida";
-        const status = product.status === true ? "Activo" : "Inactivo";
-        const thumbnail = product.thumbnails && product.thumbnails.length > 0 ? product.thumbnails[0] : null;
-
-        col.innerHTML = `
-          <div class="card h-100 shadow-sm bg-secondary-subtle">
-            ${thumbnail ? `<img src="${thumbnail}" class="card-img-top" alt="${title}">` : ''}
-            <div class="card-body">
-              <h5 class="card-title">${title}</h5>
-              <p class="card-text">${description}</p>
-              <p class="card-text"><strong>Código:</strong> ${code}</p>
-              <p class="card-text"><strong>Precio:</strong> ${price}</p>
-              <p class="card-text"><strong>Stock:</strong> ${stock}</p>
-              <p class="card-text"><strong>Categoría:</strong> ${category}</p>
-              <p class="card-text"><strong>Estado:</strong> ${status}</p>
-            </div>
-            <div class="card-footer bg-transparent border-top-0 text-end">
-              <button class="btn btn-danger deleteBtn" data-id="${product.id}">🗑️ Borrar</button>
-            </div>
+      col.innerHTML = `
+        <div class="card h-100 shadow-sm bg-secondary-subtle">
+          ${thumbnail ? `<img src="${thumbnail}" class="card-img-top" alt="${title}">` : ''}
+          <div class="card-body">
+            <h5 class="card-title">${title}</h5>
+            <p class="card-text">${description}</p>
+            <p class="card-text"><strong>Código:</strong> ${code}</p>
+            <p class="card-text"><strong>Precio:</strong> ${price}</p>
+            <p class="card-text"><strong>Stock:</strong> ${stock}</p>
+            <p class="card-text"><strong>Categoría:</strong> ${category}</p>
+            <p class="card-text"><strong>Estado:</strong> ${status}</p>
           </div>
-        `;
+          <div class="card-footer bg-transparent border-top-0 text-end">
+            <button class="btn btn-danger deleteBtn" data-id="${product._id}">🗑️ Borrar</button>
+          </div>
+        </div>
+      `;
 
-        list.appendChild(col);
-      });
+      list.appendChild(col);
+    });
 
-      document.querySelectorAll(".deleteBtn").forEach(button => {
-        button.addEventListener("click", e => {
-          const id = button.dataset.id;
-          socket.emit("delete-product", Number(id));
-        });
+    document.querySelectorAll(".deleteBtn").forEach(button => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.id;
+        socket.emit("delete-product", id);
       });
+    });
+  }
+
+  socket.on("products", (products) => {
+    renderProducts(products);
+  });
+
+  const form = document.getElementById("productForm");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const newProduct = {
+      title: form.title.value.trim(),
+      description: form.description.value.trim(),
+      code: form.code.value.trim(),
+      price: Number(form.price.value),
+      stock: Number(form.stock.value),
+      category: form.category.value.trim(),
+      thumbnails: form.thumbnails.value ? [form.thumbnails.value.trim()] : [],
+      status: form.status.value === "true"
+    };
+
+    if (isNaN(newProduct.price) || newProduct.price < 0) {
+      alert("Precio inválido");
+      return;
     }
 
-    socket.on("products", (products) => {
-      renderProducts(products);
-    });
+    if (isNaN(newProduct.stock) || newProduct.stock < 0) {
+      alert("Stock inválido");
+      return;
+    }
 
-    const form = document.getElementById("productForm");
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-
-      const newProduct = {
-        title: form.title.value.trim(),
-        description: form.description.value.trim(),
-        code: form.code.value.trim(),
-        price: Number(form.price.value),
-        stock: Number(form.stock.value),
-        category: form.category.value.trim(),
-        thumbnails: form.thumbnails.value ? [form.thumbnails.value.trim()] : [],
-        status: form.status.value === "true"
-      };
-
-      socket.emit("new-product", newProduct);
-      form.reset();
-    });
-  </script>
+    socket.emit("new-product", newProduct);
+    form.reset();
+  });
+</script>
