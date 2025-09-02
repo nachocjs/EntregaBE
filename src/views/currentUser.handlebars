@@ -1,0 +1,18 @@
+<div class="container pt-5">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Perfil del Usuario</h4>
+    </div>
+    <div class="card-body">
+      <p><strong>Nombre:</strong> {{user.first_name}} {{user.last_name}}</p>
+      <p><strong>Email:</strong> {{user.email}}</p>
+      <p><strong>Edad:</strong> {{user.age}}</p>
+      <p><strong>Rol:</strong> {{user.role}}</p>
+      <p><strong>ID de carrito:</strong> {{user.cart._id}}</p>
+
+      <a href="/carts/{{user.cart._id}}" class="btn btn-outline-primary mt-3">
+        🛒 Ir al carrito
+      </a>
+    </div>
+  </div>
+</div>

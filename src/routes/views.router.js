@@ -1,10 +1,11 @@
 import { Router } from "express";
 import Product from "../models/Product.model.js";
 import Cart from "../models/cart.model.js";
+import { ensureAuthenticated, ensureAdmin } from "../middlewares/auth.js";
 
 const router = Router();
 
-
+// Home - abierta para todos, user opcional
 router.get("/", async (req, res) => {
   try {
     const { limit = 4, page = 1, sort, query, cid } = req.query;
@@ -45,6 +46,7 @@ router.get("/", async (req, res) => {
       query,
       sort,
       limit,
+      user: req.user || null,
     });
   } catch (error) {
     console.error(error);
@@ -52,19 +54,27 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Vista de productos en tiempo real
-router.get("/realTimeProducts", async (req, res) => {
-  try {
-    const products = await Product.find().lean();
-    res.render("realTimeProducts", { products });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error cargando productos en tiempo real");
+// Vista en tiempo real (solo para admins)
+router.get(
+  "/realTimeProducts",
+  ensureAuthenticated,
+  ensureAdmin,
+  async (req, res) => {
+    try {
+      const products = await Product.find().lean();
+      res.render("realTimeProducts", {
+        products,
+        user: req.user,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error cargando productos en tiempo real");
+    }
   }
-});
+);
 
-// Vista para mostrar un carrito específico
-router.get("/carts/:cid", async (req, res) => {
+// Vista de carrito
+router.get("/carts/:cid", ensureAuthenticated, async (req, res) => {
   const cartId = req.params.cid;
 
   try {
@@ -74,11 +84,42 @@ router.get("/carts/:cid", async (req, res) => {
       return res.status(404).send("Carrito no encontrado");
     }
 
-    res.render("cartDetail", { cartId, products: cart.products });
+    res.render("cartDetail", {
+      cartId,
+      products: cart.products,
+      user: req.user || null,
+    });
   } catch (error) {
-    console.error("Error al cargar el carrito:", error.message);
+    console.error("Error al cargar el carrito:", error);
     res.status(500).send("Error al cargar el carrito");
   }
+});
+
+// Ruta para vista login
+router.get("/login", (req, res) => {
+  const { errorMessage, successMessage } = req.query;
+  res.render("login", {
+    errorMessage,
+    successMessage,
+    user: req.user || null,
+  });
+});
+
+// Ruta para vista registro
+router.get("/register", (req, res) => {
+  const { errorMessage, successMessage } = req.query;
+  res.render("register", {
+    errorMessage,
+    successMessage,
+    user: req.user || null,
+  });
+});
+
+// Ruta para mostrar datos del usuario sin la contraseña
+router.get("/current", ensureAuthenticated, (req, res) => {
+  res.render("currentUser", {
+    user: req.user,
+  });
 });
 
 export default router;

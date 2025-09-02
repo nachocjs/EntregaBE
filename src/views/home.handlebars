@@ -1,21 +1,7 @@
 <div class="container my-5">
   <h1 class="mb-4 text-center" style="padding: 30px;">Listado de Productos</h1>
 
-  <form id="cartForm" class="mb-3 text-center" onsubmit="return false;">
-    <input
-      type="text"
-      id="cartIdInput"
-      name="cid"
-      placeholder="Ingresa el ID del carrito"
-      value="{{cartId}}"
-      class="form-control mx-auto shadow-lg"
-      style="max-width: 300px;"
-    />
-    <button type="button" id="viewCartBtn" class="btn btn-outline-dark mt-2">
-     🛒 Ver Carrito
-    </button>
-  </form>
-
+  <!-- Formulario de filtro -->
   <form method="GET" action="/" class="mb-4 d-flex flex-wrap gap-3 justify-content-center">
     <input 
       type="text" 
@@ -98,48 +84,35 @@
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll(".add-to-cart-btn");
-    const cartIdInput = document.getElementById("cartIdInput");
 
     buttons.forEach(button => {
       button.addEventListener("click", async () => {
         const productId = button.dataset.productId;
-        const cartId = cartIdInput.value.trim();
-
-        if (!cartId) {
-          alert("❌ Por favor ingresa el ID del carrito antes de agregar productos.");
-          return;
-        }
 
         try {
-          const res = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+          const res = await fetch(`/api/carts/my-cart/add/${productId}`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify({ quantity: 1 })
+            credentials: "include",
+            body: JSON.stringify({ quantity: 1 }),
           });
 
-          const result = await res.json();
-
           if (res.ok) {
-            alert("✅ Producto agregado al carrito");
+            alert("✅ Producto agregado al carrito correctamente.");
+          } else if (res.status === 401) {
+            alert("❌ Debes iniciar sesión para agregar productos al carrito.");
+            
           } else {
-            alert("❌ Error: " + result.message);
+            const result = await res.json();
+            alert("❌ Error al agregar al carrito: " + (result.message || "Error desconocido"));
           }
-        } catch (err) {
-          console.error(err);
-          alert("❌ Error de conexión con el servidor");
+        } catch (error) {
+          console.error("Error agregando producto al carrito:", error);
+          alert("❌ Error de conexión al intentar agregar al carrito");
         }
       });
-    });
-
-    document.getElementById("viewCartBtn").addEventListener("click", () => {
-      const cartId = cartIdInput.value.trim();
-      if (!cartId) {
-        alert("❌ Por favor ingresa un ID de carrito válido.");
-        return;
-      }
-      window.location.href = `/carts/${cartId}`;
     });
   });
 </script>
