@@ -15,7 +15,6 @@ const authenticateJWT = async (req, res, next) => {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
 
-    
     const user = await User.findById(payload.id).select("-password").populate("cart").lean();
 
     if (!user) {
@@ -51,6 +50,14 @@ const ensureAdmin = (req, res, next) => {
   next();
 };
 
+// Middleware para impedir login si ya está autenticado
+const preventLoginIfAuthenticated = (req, res, next) => {
+  if (req.user) {
+    return res.status(400).json({ status: "error", message: "Ya estás autenticado" });
+  }
+  next();
+};
+
 // Middleware global para manejar errores
 const errorHandler = (err, req, res, next) => {
   res.status(500).json({
@@ -64,4 +71,5 @@ export {
   ensureAuthenticated,
   ensureAdmin,
   errorHandler,
+  preventLoginIfAuthenticated,
 };

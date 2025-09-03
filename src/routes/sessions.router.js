@@ -3,7 +3,7 @@ import passport from "../config/passport.js";
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 import Cart from "../models/cart.model.js";
-import bcrypt from "bcrypt";
+import { preventLoginIfAuthenticated } from "../middlewares/auth.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "secretkey123";
@@ -24,7 +24,6 @@ router.post("/register", async (req, res) => {
     const allowedRoles = ["user", "admin"];
     const finalRole = allowedRoles.includes(role) ? role : "user";
 
-    // Crear usuario con carrito asignado
     const user = new User({
       first_name,
       last_name,
@@ -45,7 +44,7 @@ router.post("/register", async (req, res) => {
 });
 
 // Login
-router.post("/login", (req, res, next) => {
+router.post("/login", preventLoginIfAuthenticated, (req, res, next) => {
   passport.authenticate("login", async (err, user, info) => {
     if (err) return next(err);
 
@@ -82,7 +81,7 @@ router.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-// Info del usuario autenticado
+// Info del usuario autenticado sin exponer password
 router.get(
   "/current",
   passport.authenticate("current", { session: false }),
