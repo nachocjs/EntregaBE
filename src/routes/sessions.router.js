@@ -13,17 +13,14 @@ router.post("/register", async (req, res) => {
   try {
     const { first_name, last_name, email, age, password, role } = req.body;
 
-    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ status: "error", message: "El email ya está registrado" });
     }
 
-    
     const cart = new Cart({ products: [] });
     await cart.save();
 
-    
     const allowedRoles = ["user", "admin"];
     const finalRole = allowedRoles.includes(role) ? role : "user";
 
@@ -57,17 +54,14 @@ router.post("/login", (req, res, next) => {
     }
 
     try {
-      
       const userWithCart = await User.findById(user._id).populate("cart").lean();
 
-      
       const token = jwt.sign(
         { id: user._id, email: user.email, role: user.role },
         JWT_SECRET,
         { expiresIn: "1h" }
       );
 
-      
       res
         .cookie("jwt", token, {
           httpOnly: true,
@@ -95,6 +89,11 @@ router.get(
   async (req, res) => {
     try {
       const userWithCart = await User.findById(req.user._id).populate("cart").lean();
+
+      if (userWithCart) {
+        delete userWithCart.password;
+      }
+
       res.status(200).json({
         status: "success",
         user: userWithCart,
