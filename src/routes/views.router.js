@@ -115,7 +115,7 @@ router.get("/register", (req, res) => {
   });
 });
 
-// Ruta para mostrar datos del usuario sin la contraseña
+// Ruta para mostrar datos del usuario
 router.get("/current", ensureAuthenticated, (req, res) => {
   res.render("currentUser", {
     user: req.user,

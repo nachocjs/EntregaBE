@@ -3,7 +3,7 @@ import User from "../models/User.model.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secretkey123";
 
-// Middleware para autenticar JWT y poblar req.user con datos completos (incluyendo carrito)
+// Middleware para autenticar JWT
 const authenticateJWT = async (req, res, next) => {
   const token = req.cookies.jwt;
 
@@ -15,7 +15,7 @@ const authenticateJWT = async (req, res, next) => {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
 
-    // Traemos usuario con carrito poblado para usar en la app
+    
     const user = await User.findById(payload.id).select("-password").populate("cart").lean();
 
     if (!user) {

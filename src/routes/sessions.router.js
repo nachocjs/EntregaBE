@@ -13,17 +13,17 @@ router.post("/register", async (req, res) => {
   try {
     const { first_name, last_name, email, age, password, role } = req.body;
 
-    // Verificar si el email ya está registrado
+    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ status: "error", message: "El email ya está registrado" });
     }
 
-    // Crear carrito vacío para el usuario
+    
     const cart = new Cart({ products: [] });
     await cart.save();
 
-    // Validar rol
+    
     const allowedRoles = ["user", "admin"];
     const finalRole = allowedRoles.includes(role) ? role : "user";
 
@@ -57,17 +57,17 @@ router.post("/login", (req, res, next) => {
     }
 
     try {
-      // Poblar carrito para devolverlo
+      
       const userWithCart = await User.findById(user._id).populate("cart").lean();
 
-      // Generar token JWT
+      
       const token = jwt.sign(
         { id: user._id, email: user.email, role: user.role },
         JWT_SECRET,
         { expiresIn: "1h" }
       );
 
-      // Enviar token en cookie httpOnly
+      
       res
         .cookie("jwt", token, {
           httpOnly: true,
