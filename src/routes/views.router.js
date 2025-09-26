@@ -11,24 +11,15 @@ router.get("/", async (req, res) => {
     const { limit = 4, page = 1, sort, query, cid } = req.query;
 
     const filter = {};
-
     if (query) {
-      if (query === "true" || query === "false") {
-        filter.status = query === "true";
-      } else {
-        filter.$or = [
-          { category: { $regex: query, $options: "i" } },
-          { title: { $regex: query, $options: "i" } },
-        ];
-      }
+      if (query === "true" || query === "false") filter.status = query === "true";
+      else filter.$or = [
+        { category: { $regex: query, $options: "i" } },
+        { title: { $regex: query, $options: "i" } }
+      ];
     }
 
-    const options = {
-      limit: parseInt(limit),
-      page: parseInt(page),
-      lean: true,
-    };
-
+    const options = { limit: parseInt(limit), page: parseInt(page), lean: true };
     if (sort === "asc") options.sort = { price: 1 };
     else if (sort === "desc") options.sort = { price: -1 };
 
@@ -45,8 +36,7 @@ router.get("/", async (req, res) => {
       prevPage: result.prevPage,
       query,
       sort,
-      limit,
-      user: req.user || null,
+      limit
     });
   } catch (error) {
     console.error(error);
@@ -54,72 +44,38 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Vista en tiempo real (solo para admins)
-router.get(
-  "/realTimeProducts",
-  ensureAuthenticated,
-  ensureAdmin,
-  async (req, res) => {
-    try {
-      const products = await Product.find().lean();
-      res.render("realTimeProducts", {
-        products,
-        user: req.user,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send("Error cargando productos en tiempo real");
-    }
+// Real time products (solo admin)
+router.get("/realTimeProducts", ensureAuthenticated, ensureAdmin, async (req, res) => {
+  try {
+    const products = await Product.find().lean();
+    res.render("realTimeProducts", { products });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error cargando productos en tiempo real");
   }
-);
+});
 
-// Vista de carrito
+// Carrito
 router.get("/carts/:cid", ensureAuthenticated, async (req, res) => {
   const cartId = req.params.cid;
-
   try {
     const cart = await Cart.findById(cartId).populate("products.product").lean();
+    if (!cart) return res.status(404).send("Carrito no encontrado");
 
-    if (!cart) {
-      return res.status(404).send("Carrito no encontrado");
-    }
-
-    res.render("cartDetail", {
-      cartId,
-      products: cart.products,
-      user: req.user || null,
-    });
+    res.render("cartDetail", { cartId, products: cart.products });
   } catch (error) {
-    console.error("Error al cargar el carrito:", error);
+    console.error(error);
     res.status(500).send("Error al cargar el carrito");
   }
 });
 
-// Ruta para vista login
-router.get("/login", (req, res) => {
-  const { errorMessage, successMessage } = req.query;
-  res.render("login", {
-    errorMessage,
-    successMessage,
-    user: req.user || null,
-  });
-});
+// Login y registro
+router.get("/login", (req, res) => res.render("login"));
+router.get("/register", (req, res) => res.render("register"));
 
-// Ruta para vista registro
-router.get("/register", (req, res) => {
-  const { errorMessage, successMessage } = req.query;
-  res.render("register", {
-    errorMessage,
-    successMessage,
-    user: req.user || null,
-  });
-});
-
-// Ruta para mostrar datos del usuario
+// Datos del usuario
 router.get("/current", ensureAuthenticated, (req, res) => {
-  res.render("currentUser", {
-    user: req.user,
-  });
+  res.render("currentUser");
 });
 
 export default router;

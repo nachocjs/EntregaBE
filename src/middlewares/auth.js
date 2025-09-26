@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "secretkey123";
+const JWT_SECRET = process.env.JWT_SECRET || "miclavesecreta123";
 
-// Middleware para autenticar JWT
+// Middleware para autenticar JWT desde cookie
 const authenticateJWT = async (req, res, next) => {
-  const token = req.cookies.jwt;
+  const token = req.cookies?.jwt;
 
   if (!token) {
     req.user = null;
@@ -14,28 +14,24 @@ const authenticateJWT = async (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(payload.id)
+      .populate("cart")
+      .select("-password")
+      .lean();
 
-    const user = await User.findById(payload.id).select("-password").populate("cart").lean();
-
-    if (!user) {
-      req.user = null;
-      return next();
-    }
-
-    req.user = user;
+    req.user = user || null;
     next();
   } catch (error) {
+    console.error("❌ Error en authenticateJWT:", error.message);
     res.clearCookie("jwt");
     req.user = null;
     next();
   }
 };
 
-// Middleware para requerir que esté autenticado
+// Middleware para requerir usuario autenticado
 const ensureAuthenticated = (req, res, next) => {
-  if (!req.user) {
-    return res.redirect("/login");
-  }
+  if (!req.user) return res.status(401).json({ status: "error", message: "Usuario no autenticado" });
   next();
 };
 
@@ -44,7 +40,7 @@ const ensureAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).render("error", {
       message: "Acceso denegado: Solo administradores",
-      user: req.user,
+      user: req.user || null,
     });
   }
   next();
@@ -52,14 +48,13 @@ const ensureAdmin = (req, res, next) => {
 
 // Middleware para impedir login si ya está autenticado
 const preventLoginIfAuthenticated = (req, res, next) => {
-  if (req.user) {
-    return res.status(400).json({ status: "error", message: "Ya estás autenticado" });
-  }
+  if (req.user) return res.status(400).json({ status: "error", message: "Ya estás autenticado" });
   next();
 };
 
 // Middleware global para manejar errores
 const errorHandler = (err, req, res, next) => {
+  console.error("Error:", err);
   res.status(500).json({
     status: "error",
     message: err.message || "Error interno del servidor",
@@ -70,6 +65,6 @@ export {
   authenticateJWT,
   ensureAuthenticated,
   ensureAdmin,
-  errorHandler,
   preventLoginIfAuthenticated,
+  errorHandler,
 };

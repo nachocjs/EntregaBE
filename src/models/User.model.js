@@ -8,31 +8,24 @@ const userSchema = new mongoose.Schema({
   age: { type: Number, required: true },
   password: { type: String, required: true },
   cart: { type: mongoose.Schema.Types.ObjectId, ref: "Cart" },
-  role: {
-    type: String,
-    enum: ["user", "admin"],
-    default: "user",
-  },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
 });
 
-// Encriptar contraseña antes de guardar
+// Hashear contraseña antes de guardar
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 });
 
 // Comparar contraseña
 userSchema.methods.isValidPassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  return bcrypt.compare(password, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default mongoose.model("User", userSchema);

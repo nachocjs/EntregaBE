@@ -1,111 +1,71 @@
 import { Router } from "express";
 import passport from "../config/passport.js";
+import userService from "../services/user.service.js";
+import { preventLoginIfAuthenticated, authenticateJWT, ensureAuthenticated } from "../middlewares/auth.js";
 import jwt from "jsonwebtoken";
-import User from "../models/User.model.js";
-import Cart from "../models/cart.model.js";
-import { preventLoginIfAuthenticated } from "../middlewares/auth.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "secretkey123";
 
-// Registro de usuario
 router.post("/register", async (req, res) => {
   try {
-    const { first_name, last_name, email, age, password, role } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ status: "error", message: "El email ya está registrado" });
-    }
-
-    const cart = new Cart({ products: [] });
-    await cart.save();
-
-    const allowedRoles = ["user", "admin"];
-    const finalRole = allowedRoles.includes(role) ? role : "user";
-
-    const user = new User({
-      first_name,
-      last_name,
-      email,
-      age,
-      password,
-      role: finalRole,
-      cart: cart._id,
-    });
-
-    await user.save();
-
+    const user = await userService.registerUser(req.body);
     res.status(201).json({ status: "success", message: "Usuario registrado", user });
   } catch (error) {
-    console.error("Error en registro:", error);
-    res.status(500).json({ status: "error", message: "Error al registrar usuario" });
+    res.status(409).json({ status: "error", message: error.message });
   }
 });
 
-// Login
 router.post("/login", preventLoginIfAuthenticated, (req, res, next) => {
   passport.authenticate("login", async (err, user, info) => {
     if (err) return next(err);
-
-    if (!user) {
-      return res.status(401).json({ status: "error", message: info?.message || "Login fallido" });
-    }
+    if (!user) return res.status(401).json({ status: "error", message: info?.message });
 
     try {
-      const userWithCart = await User.findById(user._id).populate("cart").lean();
-
-      const token = jwt.sign(
-        { id: user._id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
-      res
-        .cookie("jwt", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          maxAge: 60 * 60 * 1000,
-        })
-        .status(200)
-        .json({
-          status: "success",
-          message: "Login exitoso",
-          user: userWithCart,
-        });
+      const { token, user: userWithCart } = await userService.loginUser(user);
+      res.cookie("jwt", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 1000,
+      }).status(200).json({ status: "success", message: "Login exitoso", user: userWithCart });
     } catch (error) {
-      console.error("Error en login:", error);
       res.status(500).json({ status: "error", message: "Error al obtener usuario" });
     }
   })(req, res, next);
 });
 
-// Info del usuario autenticado sin exponer password
-router.get(
-  "/current",
-  passport.authenticate("current", { session: false }),
-  async (req, res) => {
-    try {
-      const userWithCart = await User.findById(req.user._id).populate("cart").lean();
-
-      if (userWithCart) {
-        delete userWithCart.password;
-      }
-
-      res.status(200).json({
-        status: "success",
-        user: userWithCart,
-      });
-    } catch (error) {
-      res.status(500).json({ status: "error", message: error.message });
-    }
+// Ruta /current protegida solo con middleware JWT
+router.get("/current", authenticateJWT, ensureAuthenticated, async (req, res) => {
+  try {
+    res.status(200).json({ status: "success", user: req.user });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
   }
-);
+});
 
-// Logout
 router.post("/logout", (req, res) => {
   res.clearCookie("jwt").redirect("/");
+});
+
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  try {
+    await userService.sendResetEmail(email);
+    res.status(200).json({ status: "success", message: "Correo de recuperación enviado" });
+  } catch (err) {
+    res.status(400).json({ status: "error", message: err.message });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    await userService.updatePassword(decoded.email, newPassword);
+    res.status(200).json({ status: "success", message: "Contraseña actualizada correctamente" });
+  } catch (err) {
+    res.status(400).json({ status: "error", message: "Token inválido o expirado" });
+  }
 });
 
 export default router;

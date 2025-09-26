@@ -12,13 +12,8 @@ import cartRouter from "./routes/cart.router.js";
 import viewsRouter from "./routes/views.router.js";
 import sessionsRouter from "./routes/sessions.router.js";
 
-import Product from "./models/Product.model.js";
-import {
-  authenticateJWT,
-  ensureAuthenticated,
-  ensureAdmin,
-  errorHandler,
-} from "./middlewares/auth.js";
+import ProductService from "./services/ProductService.js";
+import { authenticateJWT, ensureAuthenticated, ensureAdmin, errorHandler } from "./middlewares/auth.js";
 
 dotenv.config();
 await connectMongoDB();
@@ -28,28 +23,30 @@ const server = http.createServer(app);
 const io = new SocketIOServer(server);
 const PORT = process.env.PORT || 8080;
 
-// Middlewares
+const productService = new ProductService();
+
+// --------------------
+// Middlewares globales
+// --------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Passport middlewares 
+// Inicializar Passport
 app.use(passport.initialize());
 
-// JWT auth para todas las rutas
+// 🔹 Autenticar JWT desde cookie y pasar user a Handlebars
 app.use(authenticateJWT);
-
-// Middleware para pasar usuario autenticado a las vistas
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
   res.locals.isAdmin = req.user?.role === "admin";
   next();
 });
 
-// Static files
+// Archivos estáticos
 app.use(express.static("public"));
 
-// Handlebars config
+// Configuración Handlebars
 app.engine(
   "handlebars",
   engine({
@@ -63,31 +60,38 @@ app.engine(
 app.set("view engine", "handlebars");
 app.set("views", "./src/views");
 
+// --------------------
 // Rutas
-app.use("/api/products", productRouter);
-app.use("/api/carts", cartRouter);
+// --------------------
+// Sesiones públicas
 app.use("/api/sessions", sessionsRouter);
+
+// Rutas protegidas con JWT
+app.use("/api/products", ensureAuthenticated, productRouter);
+app.use("/api/carts", ensureAuthenticated, cartRouter);
+
+// Vistas
 app.use("/", viewsRouter);
 
-// WebSocket
+// --------------------
+// WebSockets
+// --------------------
 io.on("connection", async (socket) => {
   try {
-    const products = await Product.find().lean();
-    socket.emit("products", products);
+    const productsData = await productService.getProducts(100, 1);
+    socket.emit("products", productsData.docs);
 
     socket.on("new-product", async (data) => {
-      const newProduct = new Product(data);
-      await newProduct.save();
-
-      const updatedProducts = await Product.find().lean();
-      io.emit("products", updatedProducts);
+      await productService.createProduct(data);
+      const updatedProducts = await productService.getProducts(100, 1);
+      io.emit("products", updatedProducts.docs);
     });
 
     socket.on("delete-product", async (id) => {
       try {
-        await Product.findByIdAndDelete(id);
-        const updatedProducts = await Product.find().lean();
-        io.emit("products", updatedProducts);
+        await productService.deleteProduct(id);
+        const updatedProducts = await productService.getProducts(100, 1);
+        io.emit("products", updatedProducts.docs);
       } catch (error) {
         console.error("Error borrando producto:", error.message);
         socket.emit("error", { message: error.message });
@@ -98,10 +102,10 @@ io.on("connection", async (socket) => {
   }
 });
 
-// Error handler global
+// Manejo de errores global
 app.use(errorHandler);
 
-// Start server
+// Servidor
 server.listen(PORT, () => {
-  console.log(`Servidor activo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor activo en http://localhost:${PORT}`);
 });
