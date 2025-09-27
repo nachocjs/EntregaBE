@@ -11,6 +11,7 @@ import productRouter from "./routes/product.router.js";
 import cartRouter from "./routes/cart.router.js";
 import viewsRouter from "./routes/views.router.js";
 import sessionsRouter from "./routes/sessions.router.js";
+import adminRouter from "./routes/admin.router.js";
 
 import ProductService from "./services/ProductService.js";
 import { authenticateJWT, ensureAuthenticated, ensureAdmin, errorHandler } from "./middlewares/auth.js";
@@ -46,7 +47,7 @@ app.use((req, res, next) => {
 // Archivos estáticos
 app.use(express.static("public"));
 
-// Configuración Handlebars
+// Configuración Handlebars con helpers
 app.engine(
   "handlebars",
   engine({
@@ -54,6 +55,7 @@ app.engine(
       eq: (a, b) => a === b,
       multiply: (a, b) => a * b,
       json: (context) => JSON.stringify(context, null, 2),
+      ifEquals: (a, b, options) => (a === b ? options.fn(this) : options.inverse(this)), // ✅ helper agregado
     },
   })
 );
@@ -72,6 +74,9 @@ app.use("/api/carts", ensureAuthenticated, cartRouter);
 
 // Vistas
 app.use("/", viewsRouter);
+
+// Admin
+app.use("/admin", adminRouter);
 
 // --------------------
 // WebSockets

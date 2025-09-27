@@ -1,0 +1,61 @@
+<div class="container mt-5">
+  <h2 class="mb-4">Administrar Usuarios</h2>
+
+  <table class="table table-striped table-bordered">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each users}}
+        <tr>
+          <td>{{this.email}}</td>
+          <td>{{this.firstName}}</td>
+          <td>{{this.lastName}}</td>
+          <td>{{this.role}}</td>
+          <td>
+            <select class="form-select form-select-sm role-select" data-user-id="{{this.id}}">
+              <option value="user" {{#ifEquals this.role "user"}}selected{{/ifEquals}}>User</option>
+              <option value="admin" {{#ifEquals this.role "admin"}}selected{{/ifEquals}}>Admin</option>
+            </select>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.querySelectorAll(".role-select").forEach(select => {
+    select.addEventListener("change", async function() {
+      const userId = this.dataset.userId;
+      const newRole = this.value;
+
+      try {
+        // 🔹 Cambiado a la nueva ruta del router separado
+        const res = await fetch(`/admin/users/${userId}/role`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ role: newRole })
+        });
+
+        const data = await res.json();
+        if (data.status === "success") {
+          alert(`Rol actualizado: ${data.user.email} → ${data.user.role}`);
+        } else {
+          alert(`Error: ${data.message}`);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error al actualizar el rol");
+      }
+    });
+  });
+</script>

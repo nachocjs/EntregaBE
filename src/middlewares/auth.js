@@ -31,16 +31,18 @@ const authenticateJWT = async (req, res, next) => {
 
 // Middleware para requerir usuario autenticado
 const ensureAuthenticated = (req, res, next) => {
-  if (!req.user) return res.status(401).json({ status: "error", message: "Usuario no autenticado" });
+  if (!req.user) {
+    return res.status(401).json({ status: "error", message: "Usuario no autenticado" });
+  }
   next();
 };
 
 // Middleware para requerir rol admin
 const ensureAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
-    return res.status(403).render("error", {
+    return res.status(403).json({
+      status: "error",
       message: "Acceso denegado: Solo administradores",
-      user: req.user || null,
     });
   }
   next();
@@ -48,7 +50,9 @@ const ensureAdmin = (req, res, next) => {
 
 // Middleware para impedir login si ya está autenticado
 const preventLoginIfAuthenticated = (req, res, next) => {
-  if (req.user) return res.status(400).json({ status: "error", message: "Ya estás autenticado" });
+  if (req.user) {
+    return res.status(400).json({ status: "error", message: "Ya estás autenticado" });
+  }
   next();
 };
 

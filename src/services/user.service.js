@@ -11,8 +11,7 @@ class UserService {
     const existingUser = await userDAO.findByEmail(userData.email);
     if (existingUser) throw new Error("El email ya está registrado");
 
-    const allowedRoles = ["user", "admin"];
-    userData.role = allowedRoles.includes(userData.role) ? userData.role : "user";
+    userData.role = "user"; // siempre forzamos a user
 
     const user = await userDAO.createUser(userData);
     return user;
@@ -29,33 +28,30 @@ class UserService {
     return jwt.sign({ email }, this.JWT_SECRET, { expiresIn: "1h" });
   }
 
-async sendResetEmail(email) {
-  try {
-    const user = await userDAO.findByEmail(email);
-    if (!user) {
-      // No lanzar error, solo log
-      console.warn(`Intento de recuperación de contraseña: email no encontrado (${email})`);
-      return;
+  async sendResetEmail(email) {
+    try {
+      const user = await userDAO.findByEmail(email);
+      if (!user) {
+        console.warn(`Intento de recuperación de contraseña: email no encontrado (${email})`);
+        return;
+      }
+
+      const token = this.generateResetToken(email);
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+      await sendPasswordResetEmail(email, resetLink);
+      console.log(`Correo de recuperación enviado a ${email}`);
+    } catch (err) {
+      console.error("Error enviando correo:", err.message);
+      throw new Error("No se pudo enviar el correo. Intenta nuevamente.");
     }
-
-    const token = this.generateResetToken(email);
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-    await sendPasswordResetEmail(email, resetLink);
-    console.log(`Correo de recuperación enviado a ${email}`);
-  } catch (err) {
-    console.error("Error enviando correo:", err.message);
-    // Lanzar error solo si es fallo crítico de Nodemailer
-    throw new Error("No se pudo enviar el correo. Intenta nuevamente.");
   }
-}
 
   async updatePassword(email, newPassword) {
     const user = await userDAO.getRawUserByEmail(email);
     if (!user) throw new Error("Usuario no encontrado");
 
-    // ✅ Asignar en texto plano, pre-save se encargará de hashear
-    user.password = newPassword;
+    user.password = newPassword; // el pre-save se encargará del hash
     await user.save();
   }
 
@@ -72,6 +68,23 @@ async sendResetEmail(email) {
 
   async findByEmail(email) {
     return await userDAO.findByEmail(email);
+  }
+
+  async getAllUsers() {
+    return await userDAO.getAllUsers();
+  }
+
+  // --------------------
+  // ADMIN: actualizar rol de usuario
+  // --------------------
+  async updateUserRole(userId, newRole) {
+    const user = await userDAO.getRawUserById(userId);
+    if (!user) throw new Error("Usuario no encontrado");
+
+    user.role = newRole;
+    await user.save();
+
+    return await userDAO.findByIdWithCart(userId); // retorna DTO actualizado
   }
 }
 

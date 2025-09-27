@@ -12,6 +12,10 @@ class UserDAO {
     return await User.findOne({ email });
   }
 
+  async getRawUserById(id) {
+    return await User.findById(id); // ✅ Método agregado para updateUserRole
+  }
+
   async createUser(data) {
     const cart = new Cart({ products: [] });
     await cart.save();
@@ -33,6 +37,11 @@ class UserDAO {
   async findById(id) {
     const user = await User.findById(id).populate("cart").lean();
     return user ? new UserDTO(user) : null;
+  }
+
+  async getAllUsers() {
+    const users = await User.find().populate("cart").lean();
+    return users.map(user => new UserDTO(user));
   }
 }
 
