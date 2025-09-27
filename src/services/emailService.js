@@ -1,4 +1,3 @@
-// src/services/emailService.js
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -12,6 +11,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/**
+ * Envía un correo de recuperación de contraseña
+ * @param {string} to
+ * @param {string} resetLink
+ */
 export const sendPasswordResetEmail = async (to, resetLink) => {
   const mailOptions = {
     from: `"Tienda App" <${process.env.EMAIL_USER}>`,
@@ -25,5 +29,11 @@ export const sendPasswordResetEmail = async (to, resetLink) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Correo enviado a ${to}`);
+  } catch (err) {
+    // Solo logueamos, no lanzamos error
+    console.warn(`⚠️ No se pudo confirmar entrega SMTP, pero la app continúa: ${err.message}`);
+  }
 };

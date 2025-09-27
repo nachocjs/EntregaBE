@@ -9,8 +9,8 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { limit = 4, page = 1, sort, query, cid } = req.query;
-
     const filter = {};
+
     if (query) {
       if (query === "true" || query === "false") filter.status = query === "true";
       else filter.$or = [
@@ -36,7 +36,8 @@ router.get("/", async (req, res) => {
       prevPage: result.prevPage,
       query,
       sort,
-      limit
+      limit,
+      user: req.user || null
     });
   } catch (error) {
     console.error(error);
@@ -48,7 +49,7 @@ router.get("/", async (req, res) => {
 router.get("/realTimeProducts", ensureAuthenticated, ensureAdmin, async (req, res) => {
   try {
     const products = await Product.find().lean();
-    res.render("realTimeProducts", { products });
+    res.render("realTimeProducts", { products, user: req.user });
   } catch (error) {
     console.error(error);
     res.status(500).send("Error cargando productos en tiempo real");
@@ -62,7 +63,7 @@ router.get("/carts/:cid", ensureAuthenticated, async (req, res) => {
     const cart = await Cart.findById(cartId).populate("products.product").lean();
     if (!cart) return res.status(404).send("Carrito no encontrado");
 
-    res.render("cartDetail", { cartId, products: cart.products });
+    res.render("cartDetail", { cartId, products: cart.products, user: req.user });
   } catch (error) {
     console.error(error);
     res.status(500).send("Error al cargar el carrito");
@@ -70,12 +71,16 @@ router.get("/carts/:cid", ensureAuthenticated, async (req, res) => {
 });
 
 // Login y registro
-router.get("/login", (req, res) => res.render("login"));
-router.get("/register", (req, res) => res.render("register"));
+router.get("/login", (req, res) => res.render("login", { user: req.user || null }));
+router.get("/register", (req, res) => res.render("register", { user: req.user || null }));
+
+// Recuperación de contraseña
+router.get("/forgot-password", (req, res) => res.render("forgotPassword", { user: req.user || null }));
+router.get("/reset-password", (req, res) => res.render("resetPassword", { token: req.query.token, user: req.user || null }));
 
 // Datos del usuario
 router.get("/current", ensureAuthenticated, (req, res) => {
-  res.render("currentUser");
+  res.render("currentUser", { user: req.user });
 });
 
 export default router;

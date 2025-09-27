@@ -6,6 +6,9 @@ import jwt from "jsonwebtoken";
 
 const router = Router();
 
+// --------------------
+// Registro
+// --------------------
 router.post("/register", async (req, res) => {
   try {
     const user = await userService.registerUser(req.body);
@@ -15,6 +18,9 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// --------------------
+// Login
+// --------------------
 router.post("/login", preventLoginIfAuthenticated, (req, res, next) => {
   passport.authenticate("login", async (err, user, info) => {
     if (err) return next(err);
@@ -34,7 +40,16 @@ router.post("/login", preventLoginIfAuthenticated, (req, res, next) => {
   })(req, res, next);
 });
 
-// Ruta /current protegida solo con middleware JWT
+// --------------------
+// Logout
+// --------------------
+router.post("/logout", (req, res) => {
+  res.clearCookie("jwt").redirect("/login");
+});
+
+// --------------------
+// Usuario actual
+// --------------------
 router.get("/current", authenticateJWT, ensureAuthenticated, async (req, res) => {
   try {
     res.status(200).json({ status: "success", user: req.user });
@@ -43,28 +58,60 @@ router.get("/current", authenticateJWT, ensureAuthenticated, async (req, res) =>
   }
 });
 
-router.post("/logout", (req, res) => {
-  res.clearCookie("jwt").redirect("/");
-});
-
+// --------------------
+// Recuperación de contraseña
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
+
   try {
     await userService.sendResetEmail(email);
-    res.status(200).json({ status: "success", message: "Correo de recuperación enviado" });
+
+    // Retorna JSON para el modal
+    return res.status(200).json({
+      status: "success",
+      message: "Correo de recuperación enviado. Revisa tu bandeja de entrada."
+    });
   } catch (err) {
-    res.status(400).json({ status: "error", message: err.message });
+    console.error("Error interno al enviar correo de recuperación:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "No se pudo enviar el correo. Intenta nuevamente."
+    });
   }
 });
 
+// --------------------
+// Reset de contraseña
+// --------------------
 router.post("/reset-password", async (req, res) => {
-  const { token, newPassword } = req.body;
+  const { token, newPassword, confirmPassword } = req.body;
+
+  // Validación básica de contraseñas
+  if (!newPassword || !confirmPassword || newPassword !== confirmPassword) {
+    return res.render("resetPassword", {
+      token,
+      message: "Las contraseñas no coinciden o están vacías",
+      messageType: "danger",
+    });
+  }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     await userService.updatePassword(decoded.email, newPassword);
-    res.status(200).json({ status: "success", message: "Contraseña actualizada correctamente" });
+
+    // Mostrar mensaje de éxito y redirigir automáticamente al login
+    return res.render("resetPassword", {
+      token: "",
+      message: "Contraseña actualizada correctamente. Redirigiendo al login...",
+      messageType: "success",
+    });
   } catch (err) {
-    res.status(400).json({ status: "error", message: "Token inválido o expirado" });
+    console.error("Error al restablecer contraseña:", err);
+    return res.render("resetPassword", {
+      token,
+      message: "Token inválido o expirado",
+      messageType: "danger",
+    });
   }
 });
 
